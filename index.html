@@ -1,1061 +1,453 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Creator Studio - Live Revenue Tracker (USD & PKR)</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        yt: {
-                            red: '#FF0000',
-                            darkRed: '#CC0000',
-                            black: '#0F0F0F',
-                            card: '#1F1F1F',
-                            border: '#383838',
-                            lightBg: '#F9F9F9'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Google Identity Services Library for OAuth 2.0 -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0F0F0F; }
-        ::-webkit-scrollbar-thumb { background: #383838; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555555; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudioRevenue - Live YT Analytics & PKR Tracker</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Identity Services Library -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    body { background-color: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; }
+    .metric-val { font-size: 1.8rem; font-weight: 700; }
+    .table-dark { background-color: #161b22; color: #c9d1d9; }
+    .table-dark th { border-color: #30363d; background-color: #21262d; }
+    .table-dark td { border-color: #30363d; }
+    .badge-live { background-color: #238636; color: #fff; }
+    .badge-sim { background-color: #d29922; color: #000; }
+  </style>
 </head>
-<body class="bg-yt-black text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+<body class="p-3 p-md-4">
 
-    <!-- Header / Navbar -->
-    <header class="bg-yt-card border-b border-yt-border sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="bg-red-600 text-white p-2 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/30">
-                    <i class="fa-brands fa-youtube text-2xl"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-none text-white tracking-wide">Studio<span class="text-red-500">Revenue</span></h1>
-                    <p class="text-xs text-gray-400 mt-0.5">Live YT Analytics & PKR Tracker</p>
-                </div>
-            </div>
-
-            <!-- Header Right Actions -->
-            <div class="flex items-center space-x-2 sm:space-x-3">
-                <!-- USD / PKR Live Rate Button -->
-                <button onclick="openRateModal()" class="flex items-center bg-zinc-900 border border-yt-border rounded-lg px-2.5 py-1.5 text-xs hover:border-emerald-500 transition">
-                    <span class="text-gray-400 mr-1.5 hidden sm:inline"><i class="fa-solid fa-coins text-emerald-400"></i> USD/PKR:</span>
-                    <span id="headerExchangeRateText" class="font-semibold text-emerald-400">₨ 278.50</span>
-                    <i class="fa-solid fa-pen-to-square ml-1.5 text-gray-400 text-[10px]"></i>
-                </button>
-
-                <!-- Google OAuth Sign-In / Sync -->
-                <button id="btnGoogleAuth" onclick="handleGoogleOAuth()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 sm:py-2 rounded-lg flex items-center transition shadow-md shadow-blue-600/20 active:scale-95">
-                    <i class="fa-brands fa-google mr-1.5"></i>
-                    <span id="authBtnText">Connect Studio OAuth</span>
-                </button>
-
-                <!-- Simulation Auto-Sync -->
-                <button onclick="triggerStudioSync()" class="bg-red-600 hover:bg-yt-darkRed text-white text-xs font-medium px-3 py-1.5 sm:py-2 rounded-lg flex items-center transition shadow-md shadow-red-600/20 active:scale-95" title="Simulate studio feed without API">
-                    <i class="fa-solid fa-rotate text-xs mr-1.5" id="syncSpinner"></i>
-                    <span class="hidden md:inline">Simulator Sync</span>
-                </button>
-
-                <!-- Setup Guide Modal Trigger -->
-                <button onclick="openSetupModal()" class="bg-zinc-800 hover:bg-zinc-700 text-gray-300 border border-yt-border p-2 rounded-lg transition" title="GitHub Pages OAuth Setup Help">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-        <!-- Toast Banner -->
-        <div id="toastMessage" class="hidden transform transition-all duration-300 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-xl flex items-center justify-between text-sm">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-circle-check"></i>
-                <span id="toastText">Data loaded successfully!</span>
-            </div>
-            <button onclick="closeToast()" class="text-emerald-400 hover:text-emerald-200"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-
-        <!-- OAuth Status Bar -->
-        <div id="authStatusAlert" class="bg-zinc-900 border border-yt-border rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-            <div class="flex items-center space-x-3">
-                <span id="authStatusIndicator" class="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
-                <div>
-                    <span id="authStatusTitle" class="font-semibold text-white">OAuth Client ID Not Configured</span>
-                    <p id="authStatusDesc" class="text-gray-400">Using test simulator or manual entries. Configure your Client ID to pull live YouTube Studio earnings.</p>
-                </div>
-            </div>
-            <button onclick="openSetupModal()" class="text-red-400 hover:text-red-300 font-medium underline flex-shrink-0">
-                Setup GitHub Pages OAuth Client ID
-            </button>
-        </div>
-
-        <!-- KPI Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Total USD Card -->
-            <div class="bg-yt-card border border-yt-border rounded-xl p-5 relative overflow-hidden group hover:border-zinc-600 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Revenue ($ USD)</p>
-                        <h3 id="totalRevenueUSD" class="text-2xl font-bold text-white mt-1">$0.00</h3>
-                    </div>
-                    <div class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
-                        <i class="fa-solid fa-sack-dollar text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs text-gray-400">
-                    <span id="filteredRangeLabel" class="text-emerald-400 font-medium mr-1">Last 30 Days</span>
-                    <span>accumulated earnings</span>
-                </div>
-            </div>
-
-            <!-- Total PKR Card -->
-            <div class="bg-yt-card border border-yt-border rounded-xl p-5 relative overflow-hidden group hover:border-zinc-600 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Revenue (PKR)</p>
-                        <h3 id="totalRevenuePKR" class="text-2xl font-bold text-emerald-400 mt-1">₨ 0</h3>
-                    </div>
-                    <div class="p-2.5 bg-green-500/10 text-green-400 rounded-lg">
-                        <i class="fa-solid fa-money-bill-wave text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs text-gray-400">
-                    <span>1 USD = <span id="kpiRateText">278.50</span> PKR</span>
-                </div>
-            </div>
-
-            <!-- Daily Average USD Card -->
-            <div class="bg-yt-card border border-yt-border rounded-xl p-5 relative overflow-hidden group hover:border-zinc-600 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Daily Average ($ USD)</p>
-                        <h3 id="dailyAverageUSD" class="text-2xl font-bold text-white mt-1">$0.00</h3>
-                    </div>
-                    <div class="p-2.5 bg-blue-500/10 text-blue-400 rounded-lg">
-                        <i class="fa-solid fa-chart-line text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs text-gray-400">
-                    <span id="dailyAveragePKR" class="text-blue-400 font-medium">₨ 0 / day</span>
-                </div>
-            </div>
-
-            <!-- Days Tracked Card -->
-            <div class="bg-yt-card border border-yt-border rounded-xl p-5 relative overflow-hidden group hover:border-zinc-600 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Days Tracked</p>
-                        <h3 id="totalDaysTracked" class="text-2xl font-bold text-white mt-1">0</h3>
-                    </div>
-                    <div class="p-2.5 bg-purple-500/10 text-purple-400 rounded-lg">
-                        <i class="fa-solid fa-calendar-days text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-3 flex items-center text-xs text-gray-400">
-                    <span id="latestDateTracked" class="text-purple-400 font-medium">No records</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Chart Section -->
-        <div class="bg-yt-card border border-yt-border rounded-xl p-5">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                <div>
-                    <h2 class="text-base font-semibold text-white flex items-center">
-                        <i class="fa-solid fa-chart-area text-red-500 mr-2"></i> Revenue Analytics Trend
-                    </h2>
-                    <p class="text-xs text-gray-400">Comparative track of daily earnings in USD ($) and PKR (₨)</p>
-                </div>
-
-                <!-- Date Range Filter Tabs -->
-                <div class="flex items-center bg-zinc-900 p-1 rounded-lg border border-yt-border text-xs self-start md:self-auto">
-                    <button onclick="setFilterRange('7d')" id="btnFilter7d" class="px-3 py-1.5 rounded-md font-medium text-gray-400 hover:text-white transition">7 Days</button>
-                    <button onclick="setFilterRange('30d')" id="btnFilter30d" class="px-3 py-1.5 rounded-md font-medium bg-zinc-800 text-white shadow transition">30 Days</button>
-                    <button onclick="setFilterRange('90d')" id="btnFilter90d" class="px-3 py-1.5 rounded-md font-medium text-gray-400 hover:text-white transition">90 Days</button>
-                    <button onclick="setFilterRange('all')" id="btnFilterAll" class="px-3 py-1.5 rounded-md font-medium text-gray-400 hover:text-white transition">All Time</button>
-                </div>
-            </div>
-
-            <!-- Chart Canvas Container -->
-            <div class="relative w-full h-72">
-                <canvas id="revenueChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Data Table Container -->
-        <div class="bg-yt-card border border-yt-border rounded-xl overflow-hidden shadow-xl">
-            <div class="p-4 border-b border-yt-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="flex items-center space-x-2">
-                    <h2 class="text-base font-semibold text-white flex items-center">
-                        <i class="fa-solid fa-list-check text-red-500 mr-2"></i> Daily Earnings Log
-                    </h2>
-                    <span id="recordCountBadge" class="bg-zinc-800 text-gray-300 text-xs px-2.5 py-0.5 rounded-full border border-yt-border">0 entries</span>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                    <!-- Search Input -->
-                    <div class="relative">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-gray-400"></i>
-                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search date..." class="bg-zinc-900 border border-yt-border text-xs rounded-lg pl-8 pr-3 py-2 text-white focus:outline-none focus:border-red-500 w-36 sm:w-44">
-                    </div>
-
-                    <!-- Add Entry Button -->
-                    <button onclick="openRecordModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-lg flex items-center transition">
-                        <i class="fa-solid fa-plus mr-1.5"></i> Add Entry
-                    </button>
-
-                    <!-- Import CSV -->
-                    <label class="bg-zinc-800 hover:bg-zinc-700 text-gray-200 border border-yt-border text-xs px-3 py-2 rounded-lg cursor-pointer flex items-center transition">
-                        <i class="fa-solid fa-file-import text-xs mr-1.5 text-blue-400"></i> Import CSV
-                        <input type="file" id="csvFileInput" accept=".csv" onchange="importCSV(event)" class="hidden">
-                    </label>
-
-                    <!-- Export CSV -->
-                    <button onclick="exportCSV()" class="bg-zinc-800 hover:bg-zinc-700 text-gray-200 border border-yt-border text-xs px-3 py-2 rounded-lg flex items-center transition">
-                        <i class="fa-solid fa-file-export text-xs mr-1.5 text-emerald-400"></i> Export CSV
-                    </button>
-
-                    <!-- Clear Data Button -->
-                    <button onclick="confirmClearData()" class="bg-zinc-800 hover:bg-red-900/40 hover:text-red-300 text-gray-400 border border-yt-border text-xs p-2 rounded-lg transition" title="Clear stored records">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs sm:text-sm">
-                    <thead>
-                        <tr class="bg-zinc-900/80 text-gray-400 border-b border-yt-border font-medium text-xs tracking-wider uppercase">
-                            <th class="py-3 px-4">Date</th>
-                            <th class="py-3 px-4">Estimated Revenue ($ USD)</th>
-                            <th class="py-3 px-4">Converted Revenue (PKR)</th>
-                            <th class="py-3 px-4">Est. Views</th>
-                            <th class="py-3 px-4">Source / Status</th>
-                            <th class="py-3 px-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="earningsTableBody" class="divide-y divide-yt-border text-gray-200">
-                        <!-- Injected via JS -->
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Empty State Display -->
-            <div id="emptyState" class="hidden py-12 text-center">
-                <div class="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-500 text-2xl">
-                    <i class="fa-solid fa-folder-open"></i>
-                </div>
-                <h3 class="text-sm font-semibold text-gray-300">No revenue entries recorded</h3>
-                <p class="text-xs text-gray-500 max-w-sm mx-auto mt-1">Connect your Google OAuth Client ID or use the simulator to auto-generate sample studio data.</p>
-                <div class="mt-4 flex justify-center space-x-3">
-                    <button onclick="triggerStudioSync()" class="bg-red-600 hover:bg-yt-darkRed text-white text-xs px-4 py-2 rounded-lg transition font-medium">
-                        Simulate Studio Import
-                    </button>
-                    <button onclick="handleGoogleOAuth()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg transition font-medium">
-                        OAuth Connect
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal 1: Add or Edit Daily Record -->
-    <div id="recordModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-yt-card border border-yt-border rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <div class="flex justify-between items-center mb-5 border-b border-yt-border pb-3">
-                <h3 id="recordModalTitle" class="text-base font-bold text-white flex items-center">
-                    <i class="fa-solid fa-pen-to-square text-red-500 mr-2"></i> Add Daily Entry
-                </h3>
-                <button onclick="closeRecordModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form id="recordForm" onsubmit="saveRecord(event)" class="space-y-4">
-                <input type="hidden" id="editRecordIndex" value="-1">
-                
-                <div>
-                    <label class="block text-xs font-medium text-gray-300 mb-1">Date</label>
-                    <input type="date" id="inputDate" required class="w-full bg-zinc-900 border border-yt-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-300 mb-1">Daily Revenue in USD ($)</label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-2.5 text-gray-400 font-medium">$</span>
-                        <input type="number" id="inputUSD" step="0.01" min="0" required placeholder="0.00" class="w-full bg-zinc-900 border border-yt-border rounded-lg pl-7 pr-3 py-2 text-sm text-white focus:outline-none focus:border-red-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-300 mb-1">Estimated Daily Views (Optional)</label>
-                    <input type="number" id="inputViews" min="0" placeholder="e.g. 12500" class="w-full bg-zinc-900 border border-yt-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-300 mb-1">Data Source / Status</label>
-                    <select id="inputStatus" class="w-full bg-zinc-900 border border-yt-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500">
-                        <option value="Live API">Live API (OAuth)</option>
-                        <option value="Finalized">Finalized (Processed)</option>
-                        <option value="Estimated">Estimated (Pending)</option>
-                        <option value="Manual Entry">Manual Entry</option>
-                    </select>
-                </div>
-
-                <div class="flex justify-end space-x-3 pt-3 border-t border-yt-border">
-                    <button type="button" onclick="closeRecordModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-xs rounded-lg transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-yt-darkRed text-white text-xs font-medium rounded-lg transition shadow-lg shadow-red-600/20">Save Record</button>
-                </div>
-            </form>
-        </div>
+  <div class="container-fluid max-width-1200">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+      <div>
+        <h2 class="mb-0 text-white">StudioRevenue</h2>
+        <small class="text-secondary">Live YT Analytics & PKR Tracker</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-dark border border-secondary p-2">
+          USD/PKR: <span id="exchangeRateText" class="text-success fw-bold">Fetching...</span>
+        </span>
+        <button id="authBtn" class="btn btn-danger btn-sm" onclick="handleAuthClick()">Sign in with Google</button>
+        <button id="logoutBtn" class="btn btn-outline-secondary btn-sm d-none" onclick="logoutUser()">Logout</button>
+        <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#configModal">⚙ OAuth Setup</button>
+      </div>
     </div>
 
-    <!-- Modal 2: Edit Exchange Rate -->
-    <div id="rateModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-yt-card border border-yt-border rounded-xl w-full max-w-sm p-6 shadow-2xl">
-            <div class="flex justify-between items-center mb-4 border-b border-yt-border pb-3">
-                <h3 class="text-base font-bold text-white flex items-center">
-                    <i class="fa-solid fa-coins text-emerald-400 mr-2"></i> USD to PKR Conversion Rate
-                </h3>
-                <button onclick="closeRateModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <form onsubmit="saveExchangeRate(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-300 mb-1">1 USD = ? PKR</label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-2.5 text-gray-400 font-medium">₨</span>
-                        <input type="number" id="inputRate" step="0.01" min="1" required class="w-full bg-zinc-900 border border-yt-border rounded-lg pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    </div>
-                    <p class="text-[11px] text-gray-500 mt-1">Updates PKR figures across dashboard cards, chart trends, and tables instantly.</p>
-                </div>
-
-                <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" onclick="closeRateModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-xs rounded-lg transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition">Update Rate</button>
-                </div>
-            </form>
-        </div>
+    <!-- Banner Status -->
+    <div id="statusBanner" class="alert alert-dark border-secondary d-flex justify-content-between align-items-center">
+      <div>
+        <span id="sessionStatusBadge" class="badge badge-sim me-2">Simulator Mode</span>
+        <span id="sessionStatusText">Not connected to Google OAuth. Displaying local data.</span>
+      </div>
+      <div>
+        <button id="syncLiveBtn" class="btn btn-sm btn-success d-none" onclick="syncYouTubeData()">Sync Live YouTube Studio</button>
+        <button id="simulatorBtn" class="btn btn-sm btn-warning" onclick="runSimulatorSync()">Simulator Sync</button>
+      </div>
     </div>
 
-    <!-- Modal 3: GitHub Pages OAuth & Setup Config Guide -->
-    <div id="setupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-yt-card border border-yt-border rounded-xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4 border-b border-yt-border pb-3">
-                <h3 class="text-base font-bold text-white flex items-center">
-                    <i class="fa-solid fa-key text-blue-400 mr-2"></i> Google OAuth Client ID Configuration
-                </h3>
-                <button onclick="closeSetupModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <div class="space-y-4 text-xs text-gray-300">
-                <div class="bg-blue-500/10 border border-blue-500/30 text-blue-300 p-3 rounded-lg">
-                    <p class="font-semibold mb-1">How to enable live YouTube Studio API fetching on GitHub Pages:</p>
-                    <p>To connect directly to YouTube Analytics without a backend server, paste your Google Cloud Web OAuth Client ID below.</p>
-                </div>
-
-                <div>
-                    <label class="block font-medium text-white mb-1">Your Google OAuth Client ID</label>
-                    <input type="text" id="inputClientId" placeholder="e.g. 1234567890-abcdef...apps.googleusercontent.com" class="w-full bg-zinc-900 border border-yt-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
-                    <div class="flex justify-between items-center mt-2">
-                        <button onclick="saveClientId()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-1.5 rounded-lg transition">Save Client ID</button>
-                        <span id="clientIdSaveNotice" class="text-emerald-400 hidden">Saved to LocalStorage!</span>
-                    </div>
-                </div>
-
-                <hr class="border-yt-border">
-
-                <h4 class="font-bold text-white text-sm">Step-by-Step Google Cloud Setup:</h4>
-                <ol class="list-decimal list-inside space-y-2 text-gray-400">
-                    <li>Go to <a href="https://console.cloud.google.com/" target="_blank" class="text-blue-400 hover:underline">Google Cloud Console</a> and create a project.</li>
-                    <li>In <strong>APIs & Services > Library</strong>, enable <strong>YouTube Analytics API</strong>.</li>
-                    <li>In <strong>OAuth consent screen</strong>, select <em>External</em>, set scope: <code class="text-amber-400 bg-zinc-900 px-1 py-0.5 rounded">yt-analytics-monetary.readonly</code>, and add your channel email under <strong>Test Users</strong>.</li>
-                    <li>In <strong>Credentials</strong>, click <strong>Create Credentials > OAuth client ID</strong>:
-                        <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
-                            <li><strong>Application Type:</strong> Web Application</li>
-                            <li><strong>Authorized JavaScript Origins:</strong> <code id="originUrlCode" class="text-emerald-400 bg-zinc-900 px-1.5 py-0.5 rounded">https://yourusername.github.io</code></li>
-                        </ul>
-                    </li>
-                    <li>Copy the Client ID and paste it in the box above!</li>
-                </ol>
-            </div>
-
-            <div class="flex justify-end pt-4 mt-4 border-t border-yt-border">
-                <button onclick="closeSetupModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-xs rounded-lg transition">Close</button>
-            </div>
+    <!-- Summary Metrics Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+          <div class="text-secondary small">Total Revenue ($ USD)</div>
+          <div class="metric-val text-primary" id="totalUsd">$0.00</div>
+          <div class="small text-secondary">Accumulated earnings</div>
         </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+          <div class="text-secondary small">Total Revenue (PKR)</div>
+          <div class="metric-val text-success" id="totalPkr">₨ 0</div>
+          <div class="small text-secondary" id="conversionRateSub">Converted live</div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+          <div class="text-secondary small">Daily Average ($ USD)</div>
+          <div class="metric-val text-info" id="dailyAvgUsd">$0.00</div>
+          <div class="small text-secondary" id="dailyAvgPkr">₨ 0 / day</div>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-md-3">
+        <div class="card p-3">
+          <div class="text-secondary small">Days Tracked</div>
+          <div class="metric-val text-warning" id="daysTrackedCount">0</div>
+          <div class="small text-secondary" id="latestDateText">Latest: N/A</div>
+        </div>
+      </div>
     </div>
 
-    <!-- Application Logic -->
-    <script>
-        /* APP STATE */
-        let state = {
-            usdToPkrRate: 278.50,
-            records: [],
-            filterRange: '30d',
-            clientId: '',
-            accessToken: null,
-            tokenClient: null,
-            chartInstance: null
-        };
+    <!-- Chart Visualization -->
+    <div class="card p-3 mb-4">
+      <h5 class="text-white mb-3">Revenue Analytics Trend</h5>
+      <div style="height: 300px;">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
 
-        /* INITIALIZATION */
-        window.addEventListener('DOMContentLoaded', () => {
-            loadFromLocalStorage();
-            fetchLiveExchangeRate();
+    <!-- Data Table Log -->
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h5 class="text-white mb-0">Daily Earnings Log</h5>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-primary" onclick="addManualEntry()">+ Add Entry</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="clearSimulatedEntries()">Clear Estimated Rows</button>
+        </div>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Estimated Revenue ($ USD)</th>
+              <th>Converted Revenue (PKR)</th>
+              <th>Est. Views</th>
+              <th>Source / Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="earningsTableBody">
+            <tr><td colspan="6" class="text-center text-secondary py-4">No earnings data loaded yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- OAuth Configuration Modal -->
+  <div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-light border-secondary">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title">⚙ OAuth Setup</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Google OAuth Client ID:</label>
+          <input type="text" id="clientIdInput" class="form-control bg-black text-light border-secondary mb-2" 
+                 placeholder="1080999...apps.googleusercontent.com">
+          <small class="text-secondary">Enter your Google Cloud Console OAuth 2.0 Web Client ID here.</small>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-primary" onclick="saveClientId()">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Script Logic -->
+  <script>
+    // Configuration & State
+    let clientId = localStorage.getItem('yt_client_id') || '1080999553577-i32dhrp51f3d8fu7q6mqa2fo46audqme.apps.googleusercontent.com';
+    let usdToPkrRate = 276.96;
+    let tokenClient;
+    let chartInstance = null;
+    let earningsData = JSON.parse(localStorage.getItem('yt_earnings_log')) || [];
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('clientIdInput').value = clientId;
+      fetchExchangeRate();
+      initChart();
+      checkOAuthSession();
+      renderTableAndMetrics();
+    });
+
+    // 1. Exchange Rate Fetcher
+    async function fetchExchangeRate() {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await res.json();
+        if (data && data.rates && data.rates.PKR) {
+          usdToPkrRate = data.rates.PKR;
+          document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)}`;
+          document.getElementById('conversionRateSub').innerText = `1 USD = ${usdToPkrRate.toFixed(2)} PKR`;
+          renderTableAndMetrics();
+        }
+      } catch (e) {
+        console.warn('Exchange rate API failed. Using fallback: PKR 276.96');
+        document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)} (Fallback)`;
+      }
+    }
+
+    // 2. Google OAuth Integration (GIS)
+    function initOAuthClient() {
+      if (!clientId) return alert('Please enter a Client ID in ⚙ OAuth Setup.');
+      
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/yt-analytics-monetary.readonly https://www.googleapis.com/auth/youtube.readonly',
+        callback: (response) => {
+          if (response.access_token) {
+            const expiryTime = Date.now() + (response.expires_in * 1000);
+            localStorage.setItem('yt_oauth_token', response.access_token);
+            localStorage.setItem('yt_oauth_expiry', expiryTime);
             
-            // Default sample simulation if first time load
-            if (!state.records || state.records.length === 0) {
-                generateSimulatedData(30);
-            }
+            checkOAuthSession();
+            syncYouTubeData();
+          }
+        },
+      });
+    }
 
-            // Detect & Display current GitHub Pages origin URL in setup guide
-            const currentOrigin = window.location.origin;
-            const originCodeEl = document.getElementById('originUrlCode');
-            if (originCodeEl) originCodeEl.innerText = currentOrigin;
+    function handleAuthClick() {
+      if (!tokenClient) initOAuthClient();
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
 
-            updateAuthUIStatus();
-            updateUI();
+    function checkOAuthSession() {
+      const token = localStorage.getItem('yt_oauth_token');
+      const expiry = localStorage.getItem('yt_oauth_expiry');
+
+      if (token && expiry && Date.now() < Number(expiry)) {
+        // Logged In: Hide Simulator completely
+        document.getElementById('authBtn').classList.add('d-none');
+        document.getElementById('logoutBtn').classList.remove('d-none');
+        document.getElementById('syncLiveBtn').classList.remove('d-none');
+        document.getElementById('simulatorBtn').classList.add('d-none');
+        document.getElementById('simulatorBtn').disabled = true;
+
+        document.getElementById('sessionStatusBadge').className = 'badge badge-live me-2';
+        document.getElementById('sessionStatusBadge').innerText = 'Connected to Live YouTube Analytics API';
+        document.getElementById('sessionStatusText').innerText = 'Active OAuth session. Click button to sync daily revenue.';
+      } else {
+        // Logged Out: Enable Simulator
+        localStorage.removeItem('yt_oauth_token');
+        localStorage.removeItem('yt_oauth_expiry');
+
+        document.getElementById('authBtn').classList.remove('d-none');
+        document.getElementById('logoutBtn').classList.add('d-none');
+        document.getElementById('syncLiveBtn').classList.add('d-none');
+        document.getElementById('simulatorBtn').classList.remove('d-none');
+        document.getElementById('simulatorBtn').disabled = false;
+
+        document.getElementById('sessionStatusBadge').className = 'badge badge-sim me-2';
+        document.getElementById('sessionStatusBadge').innerText = 'Simulator Mode';
+        document.getElementById('sessionStatusText').innerText = 'Not connected to Google OAuth. Displaying local data.';
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('yt_oauth_token');
+      localStorage.removeItem('yt_oauth_expiry');
+      checkOAuthSession();
+      alert('Logged out successfully.');
+    }
+
+    function saveClientId() {
+      const inputVal = document.getElementById('clientIdInput').value.trim();
+      if (inputVal) {
+        clientId = inputVal;
+        localStorage.setItem('yt_client_id', clientId);
+        initOAuthClient();
+        bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+        alert('OAuth Client ID saved successfully!');
+      }
+    }
+
+    // 3. YouTube Analytics API Integration
+    async function syncYouTubeData() {
+      const token = localStorage.getItem('yt_oauth_token');
+      if (!token) return alert('No active session. Please sign in again.');
+
+      try {
+        // Step A: Get Channel ID
+        const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        /* PERSISTENCE */
-        function saveToLocalStorage() {
-            localStorage.setItem('yt_revenue_pkr_rate', state.usdToPkrRate.toString());
-            localStorage.setItem('yt_revenue_records', JSON.stringify(state.records));
-            localStorage.setItem('yt_revenue_client_id', state.clientId || '');
+        const channelData = await channelRes.json();
+        
+        if (!channelData.items || channelData.items.length === 0) {
+          throw new Error('No YouTube Channel found for this account.');
         }
-
-        function loadFromLocalStorage() {
-            const savedRate = localStorage.getItem('yt_revenue_pkr_rate');
-            if (savedRate) state.usdToPkrRate = parseFloat(savedRate) || 278.50;
-
-            const savedClientId = localStorage.getItem('yt_revenue_client_id');
-            if (savedClientId) {
-                state.clientId = savedClientId;
-                document.getElementById('inputClientId').value = savedClientId;
-            }
-
-            const savedRecords = localStorage.getItem('yt_revenue_records');
-            if (savedRecords) {
-                try {
-                    state.records = JSON.parse(savedRecords);
-                } catch (e) {
-                    console.error('Failed to parse saved records', e);
-                    state.records = [];
-                }
-            }
-        }
-
-        /* LIVE EXCHANGE RATE API (USD -> PKR) */
-        async function fetchLiveExchangeRate() {
-            try {
-                const res = await fetch('https://open.er-api.com/v6/latest/USD');
-                const data = await res.json();
-                if (data && data.rates && data.rates.PKR) {
-                    state.usdToPkrRate = parseFloat(data.rates.PKR);
-                    saveToLocalStorage();
-                    updateUI();
-                }
-            } catch (err) {
-                console.warn("Using fallback rate (Network/API unreachable)", err);
-            }
-        }
-
-        /* GOOGLE OAUTH 2.0 & YOUTUBE ANALYTICS INTEGRATION */
-        function updateAuthUIStatus() {
-            const indicator = document.getElementById('authStatusIndicator');
-            const title = document.getElementById('authStatusTitle');
-            const desc = document.getElementById('authStatusDesc');
-            const btnText = document.getElementById('authBtnText');
-
-            if (state.accessToken) {
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0";
-                title.innerText = "Connected to Live YouTube Analytics API";
-                desc.innerText = "Active OAuth session. Click button to re-sync daily revenue estimates.";
-                btnText.innerText = "Sync Live YouTube Studio";
-            } else if (state.clientId) {
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0";
-                title.innerText = "OAuth Client ID Ready";
-                desc.innerText = "Click 'Connect Studio OAuth' to log in with your YouTube channel account.";
-                btnText.innerText = "Connect Studio OAuth";
-            } else {
-                indicator.className = "w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse";
-                title.innerText = "OAuth Client ID Not Configured";
-                desc.innerText = "Running in standalone mode. Use 'Simulator Sync' or add Client ID for live data.";
-                btnText.innerText = "Connect Studio OAuth";
-            }
-        }
-
-        function handleGoogleOAuth() {
-            if (!state.clientId) {
-                openSetupModal();
-                showToast("Please enter your Google OAuth Client ID first.");
-                return;
-            }
-
-            if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
-                showToast("Google Identity library still loading. Please try again in a moment.");
-                return;
-            }
-
-            if (!state.tokenClient) {
-                state.tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: state.clientId,
-                    scope: 'https://www.googleapis.com/auth/yt-analytics-monetary.readonly',
-                    callback: (response) => {
-                        if (response.error) {
-                            console.error("OAuth Error:", response);
-                            showToast("Authentication failed: " + response.error);
-                            return;
-                        }
-                        if (response.access_token) {
-                            state.accessToken = response.access_token;
-                            updateAuthUIStatus();
-                            showToast("Google OAuth authenticated successfully!");
-                            fetchYouTubeAnalyticsData();
-                        }
-                    },
-                });
-            }
-
-            state.tokenClient.requestAccessToken();
-        }
-
-        async function fetchYouTubeAnalyticsData() {
-            if (!state.accessToken) return;
-
-            const spinner = document.getElementById('syncSpinner');
-            if (spinner) spinner.classList.add('fa-spin');
-
-            try {
-                // YouTube Analytics reporting runs on ~48 hour delay
-                const endDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // last 60d
-
-                const url = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue,views&dimensions=day&sort=-day`;
-
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${state.accessToken}` }
-                });
-
-                if (!res.ok) {
-                    throw new Error(`API Returned Status ${res.status}`);
-                }
-
-                const data = await res.json();
-
-                if (data && data.rows) {
-                    let importedCount = 0;
-                    data.rows.forEach(row => {
-                        const dateStr = row[0];
-                        const usdVal = parseFloat(row[1]);
-                        const viewsVal = parseInt(row[2]) || 0;
-
-                        const existingIdx = state.records.findIndex(r => r.date === dateStr);
-                        const recordObj = {
-                            date: dateStr,
-                            usd: usdVal,
-                            views: viewsVal,
-                            status: 'Live API'
-                        };
-
-                        if (existingIdx >= 0) {
-                            state.records[existingIdx] = recordObj;
-                        } else {
-                            state.records.push(recordObj);
-                        }
-                        importedCount++;
-                    });
-
-                    saveToLocalStorage();
-                    updateUI();
-                    showToast(`Fetched ${importedCount} live days from YouTube Studio API!`);
-                } else {
-                    showToast("No revenue records returned from YouTube Analytics.");
-                }
-            } catch (err) {
-                console.error("Failed to query YouTube Analytics API", err);
-                showToast("Failed to fetch YouTube API: " + err.message);
-            } finally {
-                if (spinner) spinner.classList.remove('fa-spin');
-            }
-        }
-
-        /* SIMULATOR FUNCTION FOR EASY TESTING */
-        function generateSimulatedData(daysCount = 30) {
-            const today = new Date();
-
-            for (let i = 0; i < daysCount; i++) {
-                const dateObj = new Date();
-                dateObj.setDate(today.getDate() - i);
-                const dateStr = dateObj.toISOString().split('T')[0];
-
-                const existing = state.records.find(r => r.date === dateStr);
-                if (!existing) {
-                    const randomUSD = parseFloat((18 + Math.random() * 52 + (i % 6 === 0 ? 30 : 0)).toFixed(2));
-                    const randomViews = Math.floor(randomUSD * (380 + Math.random() * 120));
-
-                    state.records.push({
-                        date: dateStr,
-                        usd: randomUSD,
-                        views: randomViews,
-                        status: i < 3 ? 'Estimated' : 'Finalized'
-                    });
-                }
-            }
-
-            sortRecordsDescending();
-            saveToLocalStorage();
-        }
-
-        function triggerStudioSync() {
-            const spinner = document.getElementById('syncSpinner');
-            if (spinner) spinner.classList.add('fa-spin');
-
-            setTimeout(() => {
-                generateSimulatedData(15);
-                updateUI();
-                if (spinner) spinner.classList.remove('fa-spin');
-                showToast("Simulated YouTube Studio daily feed updated!");
-            }, 600);
-        }
-
-        /* SORTING & FILTERING */
-        function sortRecordsDescending() {
-            state.records.sort((a, b) => new Date(b.date) - new Date(a.date));
-        }
-
-        function getFilteredRecords() {
-            if (state.filterRange === 'all') return state.records;
-
-            const days = parseInt(state.filterRange.replace('d', '')) || 30;
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - days);
-
-            return state.records.filter(r => new Date(r.date) >= cutoffDate);
-        }
-
-        function setFilterRange(range) {
-            state.filterRange = range;
-
-            ['7d', '30d', '90d', 'all'].forEach(r => {
-                const btn = document.getElementById(`btnFilter${r.charAt(0).toUpperCase() + r.slice(1)}`);
-                if (btn) {
-                    if (r === range) {
-                        btn.className = "px-3 py-1.5 rounded-md font-medium bg-zinc-800 text-white shadow transition";
-                    } else {
-                        btn.className = "px-3 py-1.5 rounded-md font-medium text-gray-400 hover:text-white transition";
-                    }
-                }
-            });
-
-            updateUI();
-        }
-
-        /* RENDERING CONTROLLER */
-        function updateUI() {
-            sortRecordsDescending();
-            renderHeaderAndKPIs();
-            renderChart();
-            renderTable();
-        }
-
-        function renderHeaderAndKPIs() {
-            document.getElementById('headerExchangeRateText').innerText = `₨ ${state.usdToPkrRate.toFixed(2)}`;
-            document.getElementById('kpiRateText').innerText = state.usdToPkrRate.toFixed(2);
-
-            const filtered = getFilteredRecords();
-            const totalUSD = filtered.reduce((sum, r) => sum + parseFloat(r.usd || 0), 0);
-            const totalPKR = totalUSD * state.usdToPkrRate;
-            const daysCount = filtered.length;
-            const avgUSD = daysCount > 0 ? (totalUSD / daysCount) : 0;
-            const avgPKR = avgUSD * state.usdToPkrRate;
-
-            document.getElementById('totalRevenueUSD').innerText = `$${totalUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            document.getElementById('totalRevenuePKR').innerText = `₨ ${Math.round(totalPKR).toLocaleString('en-US')}`;
-            document.getElementById('dailyAverageUSD').innerText = `$${avgUSD.toFixed(2)}`;
-            document.getElementById('dailyAveragePKR').innerText = `₨ ${Math.round(avgPKR).toLocaleString('en-US')} / day`;
-            document.getElementById('totalDaysTracked').innerText = daysCount;
-
-            const rangeLabels = { '7d': 'Last 7 Days', '30d': 'Last 30 Days', '90d': 'Last 90 Days', 'all': 'All Time' };
-            document.getElementById('filteredRangeLabel').innerText = rangeLabels[state.filterRange] || 'Filtered';
-
-            if (state.records.length > 0) {
-                document.getElementById('latestDateTracked').innerText = `Latest: ${state.records[0].date}`;
-            } else {
-                document.getElementById('latestDateTracked').innerText = `No records`;
-            }
-        }
-
-        /* CHART RENDERING */
-        function renderChart() {
-            const ctx = document.getElementById('revenueChart').getContext('2d');
-            const filtered = [...getFilteredRecords()].reverse(); // Chronological for chart
-
-            const labels = filtered.map(r => {
-                const d = new Date(r.date);
-                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            const dataUSD = filtered.map(r => r.usd);
-            const dataPKR = filtered.map(r => Math.round(r.usd * state.usdToPkrRate));
-
-            if (state.chartInstance) {
-                state.chartInstance.destroy();
-            }
-
-            state.chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Revenue ($ USD)',
-                            data: dataUSD,
-                            borderColor: '#FF0000',
-                            backgroundColor: 'rgba(255, 0, 0, 0.1)',
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.3,
-                            yAxisID: 'yUSD',
-                            pointRadius: labels.length > 40 ? 0 : 3
-                        },
-                        {
-                            label: 'Revenue (PKR)',
-                            data: dataPKR,
-                            borderColor: '#10B981',
-                            backgroundColor: 'transparent',
-                            borderWidth: 1.5,
-                            borderDash: [4, 4],
-                            tension: 0.3,
-                            yAxisID: 'yPKR',
-                            pointRadius: 0
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            labels: { color: '#9CA3AF', font: { size: 11, family: 'Inter' }, boxWidth: 12 }
-                        },
-                        tooltip: {
-                            backgroundColor: '#1F1F1F',
-                            titleColor: '#FFFFFF',
-                            bodyColor: '#E5E7EB',
-                            borderColor: '#383838',
-                            borderWidth: 1,
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.dataset.yAxisID === 'yUSD') {
-                                        return ` USD: $${context.parsed.y.toFixed(2)}`;
-                                    } else {
-                                        return ` PKR: ₨ ${context.parsed.y.toLocaleString('en-US')}`;
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#9CA3AF', font: { size: 10 } }
-                        },
-                        yUSD: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: {
-                                color: '#9CA3AF',
-                                font: { size: 10 },
-                                callback: value => '$' + value
-                            }
-                        },
-                        yPKR: { type: 'linear', display: false, position: 'right' }
-                    }
-                }
-            });
-        }
-
-        /* TABLE RENDERING */
-        function renderTable() {
-            const tbody = document.getElementById('earningsTableBody');
-            const searchVal = (document.getElementById('searchInput').value || '').trim().toLowerCase();
-            const emptyState = document.getElementById('emptyState');
-
-            const filtered = getFilteredRecords().filter(r => r.date.toLowerCase().includes(searchVal));
-
-            document.getElementById('recordCountBadge').innerText = `${filtered.length} entries`;
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                return;
-            }
-
-            emptyState.classList.add('hidden');
-
-            tbody.innerHTML = filtered.map((record) => {
-                const originalIndex = state.records.findIndex(r => r.date === record.date);
-                const pkrValue = (record.usd * state.usdToPkrRate).toFixed(2);
-                
-                let statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${record.status || 'Finalized'}</span>`;
-                if (record.status === 'Live API') {
-                    statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20"><i class="fa-brands fa-google text-[9px] mr-1"></i> Live API</span>`;
-                } else if (record.status === 'Estimated') {
-                    statusBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">Estimated</span>`;
-                }
-
-                const formattedDate = new Date(record.date).toLocaleDateString('en-US', {
-                    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
-                });
-
-                return `
-                    <tr class="hover:bg-zinc-800/50 transition border-b border-yt-border/50">
-                        <td class="py-3 px-4 font-medium text-white whitespace-nowrap">
-                            ${formattedDate}
-                            <span class="block text-[11px] text-gray-500 font-normal">${record.date}</span>
-                        </td>
-                        <td class="py-3 px-4 font-bold text-white whitespace-nowrap">
-                            $${parseFloat(record.usd).toFixed(2)}
-                        </td>
-                        <td class="py-3 px-4 font-semibold text-emerald-400 whitespace-nowrap">
-                            ₨ ${Math.round(pkrValue).toLocaleString('en-US')}
-                            <span class="block text-[10px] text-gray-500 font-normal">₨ ${parseFloat(pkrValue).toFixed(2)}</span>
-                        </td>
-                        <td class="py-3 px-4 text-gray-400 whitespace-nowrap">
-                            ${record.views ? record.views.toLocaleString('en-US') : '<span class="text-gray-600">N/A</span>'}
-                        </td>
-                        <td class="py-3 px-4 whitespace-nowrap">
-                            ${statusBadge}
-                        </td>
-                        <td class="py-3 px-4 text-right whitespace-nowrap">
-                            <button onclick="openRecordModal(${originalIndex})" class="text-gray-400 hover:text-white p-1 rounded hover:bg-zinc-700 mr-1 transition" title="Edit">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button onclick="deleteRecord(${originalIndex})" class="text-gray-400 hover:text-red-400 p-1 rounded hover:bg-zinc-700 transition" title="Delete">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        /* CRUD ACTIONS */
-        function openRecordModal(index = -1) {
-            const modal = document.getElementById('recordModal');
-            const title = document.getElementById('recordModalTitle');
-            const editIndexInput = document.getElementById('editRecordIndex');
-
-            if (index >= 0 && state.records[index]) {
-                const rec = state.records[index];
-                title.innerHTML = `<i class="fa-solid fa-pen-to-square text-red-500 mr-2"></i> Edit Daily Entry`;
-                editIndexInput.value = index;
-                document.getElementById('inputDate').value = rec.date;
-                document.getElementById('inputUSD').value = rec.usd;
-                document.getElementById('inputViews').value = rec.views || '';
-                document.getElementById('inputStatus').value = rec.status || 'Finalized';
-            } else {
-                title.innerHTML = `<i class="fa-solid fa-plus text-red-500 mr-2"></i> Add Daily Revenue Entry`;
-                editIndexInput.value = -1;
-                document.getElementById('recordForm').reset();
-                document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeRecordModal() {
-            document.getElementById('recordModal').classList.add('hidden');
-        }
-
-        function saveRecord(e) {
-            e.preventDefault();
-            const index = parseInt(document.getElementById('editRecordIndex').value);
-            const date = document.getElementById('inputDate').value;
-            const usd = parseFloat(document.getElementById('inputUSD').value) || 0;
-            const views = parseInt(document.getElementById('inputViews').value) || 0;
-            const status = document.getElementById('inputStatus').value;
-
-            const recordObj = { date, usd, views, status };
-
-            if (index >= 0) {
-                state.records[index] = recordObj;
-                showToast("Entry updated successfully!");
-            } else {
-                const existingIndex = state.records.findIndex(r => r.date === date);
-                if (existingIndex >= 0) {
-                    state.records[existingIndex] = recordObj;
-                    showToast("Updated existing entry for " + date);
-                } else {
-                    state.records.push(recordObj);
-                    showToast("New record saved!");
-                }
-            }
-
-            saveToLocalStorage();
-            closeRecordModal();
-            updateUI();
-        }
-
-        function deleteRecord(index) {
-            if (index >= 0 && index < state.records.length) {
-                const date = state.records[index].date;
-                state.records.splice(index, 1);
-                saveToLocalStorage();
-                updateUI();
-                showToast(`Record for ${date} removed.`);
-            }
-        }
-
-        function confirmClearData() {
-            if (confirm("Are you sure you want to clear all stored earnings records?")) {
-                state.records = [];
-                saveToLocalStorage();
-                updateUI();
-                showToast("All data cleared.");
-            }
-        }
-
-        /* RATE MODAL & SETUP MODAL */
-        function openRateModal() {
-            document.getElementById('inputRate').value = state.usdToPkrRate;
-            document.getElementById('rateModal').classList.remove('hidden');
-        }
-
-        function closeRateModal() {
-            document.getElementById('rateModal').classList.add('hidden');
-        }
-
-        function saveExchangeRate(e) {
-            e.preventDefault();
-            const newRate = parseFloat(document.getElementById('inputRate').value);
-            if (newRate > 0) {
-                state.usdToPkrRate = newRate;
-                saveToLocalStorage();
-                updateUI();
-                closeRateModal();
-                showToast(`Exchange rate set to 1 USD = ${newRate} PKR`);
-            }
-        }
-
-        function openSetupModal() {
-            document.getElementById('setupModal').classList.remove('hidden');
-        }
-
-        function closeSetupModal() {
-            document.getElementById('setupModal').classList.add('hidden');
-        }
-
-        function saveClientId() {
-            const val = (document.getElementById('inputClientId').value || '').trim();
-            state.clientId = val;
-            saveToLocalStorage();
-            updateAuthUIStatus();
+        const channelId = channelData.items[0].id;
+
+        // Step B: Fetch Analytics Reports (Last 30 Days)
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const analyticsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue,views&dimensions=day&sort=day`;
+
+        const analyticsRes = await fetch(analyticsUrl, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const analyticsData = await analyticsRes.json();
+
+        if (analyticsData.rows) {
+          // Process and merge API rows into local state
+          analyticsData.rows.forEach(row => {
+            const [dateStr, revUsd, viewsCount] = row;
             
-            const notice = document.getElementById('clientIdSaveNotice');
-            notice.classList.remove('hidden');
-            setTimeout(() => notice.classList.add('hidden'), 3000);
-
-            showToast("Google OAuth Client ID saved!");
-        }
-
-        /* CSV EXPORT / IMPORT */
-        function exportCSV() {
-            if (state.records.length === 0) {
-                showToast("No records available to export!");
-                return;
-            }
-
-            let csv = "Date,Estimated Revenue USD,Converted Revenue PKR,Views,Status\n";
-            state.records.forEach(r => {
-                const pkr = (r.usd * state.usdToPkrRate).toFixed(2);
-                csv += `${r.date},${r.usd},${pkr},${r.views || 0},${r.status || 'Finalized'}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `YouTube_Revenue_${new Date().toISOString().split('T')[0]}.csv`);
-            a.click();
-            showToast("CSV report downloaded!");
-        }
-
-        function importCSV(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lines = text.split('\n');
-                let count = 0;
-
-                lines.forEach((line, idx) => {
-                    if (idx === 0 || !line.trim()) return;
-                    const cols = line.split(',').map(c => c.trim());
-
-                    if (cols.length >= 2) {
-                        const date = cols[0];
-                        const usd = parseFloat(cols[1]);
-                        const views = cols[3] ? parseInt(cols[3]) : 0;
-                        const status = cols[4] || 'CSV Import';
-
-                        if (date && !isNaN(usd)) {
-                            const existingIndex = state.records.findIndex(r => r.date === date);
-                            if (existingIndex >= 0) {
-                                state.records[existingIndex] = { date, usd, views, status };
-                            } else {
-                                state.records.push({ date, usd, views, status });
-                            }
-                            count++;
-                        }
-                    }
-                });
-
-                saveToLocalStorage();
-                updateUI();
-                showToast(`Imported ${count} entries from CSV file!`);
-                event.target.value = '';
+            // Check if entry already exists
+            const existingIdx = earningsData.findIndex(e => e.date === dateStr);
+            const entryObj = {
+              date: dateStr,
+              usd: parseFloat(revUsd.toFixed(2)),
+              views: viewsCount,
+              type: 'Live API'
             };
-            reader.readAsText(file);
-        }
 
-        /* TOAST UTILITY */
-        function showToast(msg) {
-            const toast = document.getElementById('toastMessage');
-            document.getElementById('toastText').innerText = msg;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 4000);
-        }
+            if (existingIdx >= 0) {
+              earningsData[existingIdx] = entryObj;
+            } else {
+              earningsData.push(entryObj);
+            }
+          });
 
-        function closeToast() {
-            document.getElementById('toastMessage').classList.add('hidden');
+          // Sort descending by date
+          earningsData.sort((a, b) => new Date(b.date) - new Date(a.date));
+          localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
+          
+          renderTableAndMetrics();
+          alert('Live YouTube Analytics successfully synchronized!');
+        } else {
+          alert('Sync complete. No revenue data returned for the selected date range.');
         }
-    </script>
+      } catch (e) {
+        console.error(e);
+        alert(`API Error: ${e.message}`);
+      }
+    }
+
+    // 4. Simulator Guard (Blocked when logged in)
+    function runSimulatorSync() {
+      if (localStorage.getItem('yt_oauth_token')) {
+        alert("Simulator is disabled while logged in to Live YouTube Analytics.");
+        return;
+      }
+
+      // Generate 1 dummy entry for testing
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dummyEntry = {
+        date: todayStr,
+        usd: parseFloat((Math.random() * 5 + 1).toFixed(2)),
+        views: Math.floor(Math.random() * 1000 + 500),
+        type: 'Estimated'
+      };
+
+      earningsData.unshift(dummyEntry);
+      localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
+      renderTableAndMetrics();
+    }
+
+    // 5. Data Table & Metrics Rendering
+    function renderTableAndMetrics() {
+      const tbody = document.getElementById('earningsTableBody');
+      tbody.innerHTML = '';
+
+      if (earningsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-secondary py-4">No earnings data loaded yet.</td></tr>`;
+        updateMetrics(0, 0, 0, 'N/A');
+        return;
+      }
+
+      let totalUsd = 0;
+
+      earningsData.forEach((entry, idx) => {
+        totalUsd += entry.usd;
+        const pkrVal = (entry.usd * usdToPkrRate).toLocaleString('en-PK', { maximumFractionDigits: 2 });
+        const isLive = entry.type === 'Live API';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="fw-bold text-white">${entry.date}</td>
+          <td class="text-primary">$${entry.usd.toFixed(2)}</td>
+          <td class="text-success">₨ ${pkrVal}</td>
+          <td>${entry.views ? entry.views.toLocaleString() : 'N/A'}</td>
+          <td><span class="badge ${isLive ? 'badge-live' : 'badge-sim'}">${entry.type || 'Manual'}</span></td>
+          <td><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteEntry(${idx})">×</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const avgUsd = totalUsd / earningsData.length;
+      const latestDate = earningsData[0]?.date || 'N/A';
+      
+      updateMetrics(totalUsd, avgUsd, earningsData.length, latestDate);
+      updateChart();
+    }
+
+    function updateMetrics(totalUsd, avgUsd, count, latestDate) {
+      document.getElementById('totalUsd').innerText = `$${totalUsd.toFixed(2)}`;
+      document.getElementById('totalPkr').innerText = `₨ ${(totalUsd * usdToPkrRate).toLocaleString('en-PK', { maximumFractionDigits: 0 })}`;
+      document.getElementById('dailyAvgUsd').innerText = `$${avgUsd.toFixed(2)}`;
+      document.getElementById('dailyAvgPkr').innerText = `₨ ${(avgUsd * usdToPkrRate).toFixed(0)} / day`;
+      document.getElementById('daysTrackedCount').innerText = count;
+      document.getElementById('latestDateText').innerText = `Latest: ${latestDate}`;
+    }
+
+    // 6. Chart.js Visualization
+    function initChart() {
+      const ctx = document.getElementById('revenueChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Revenue ($ USD)',
+            data: [],
+            borderColor: '#58a6ff',
+            backgroundColor: 'rgba(88, 166, 255, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
+            y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+          }
+        }
+      });
+    }
+
+    function updateChart() {
+      if (!chartInstance) return;
+      const sortedAsc = [...earningsData].reverse();
+      chartInstance.data.labels = sortedAsc.map(e => e.date);
+      chartInstance.data.datasets[0].data = sortedAsc.map(e => e.usd);
+      chartInstance.update();
+    }
+
+    // 7. Data Helpers
+    function deleteEntry(index) {
+      earningsData.splice(index, 1);
+      localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
+      renderTableAndMetrics();
+    }
+
+    function clearSimulatedEntries() {
+      earningsData = earningsData.filter(e => e.type !== 'Estimated');
+      localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
+      renderTableAndMetrics();
+    }
+
+    function addManualEntry() {
+      const date = prompt("Enter Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+      const usd = parseFloat(prompt("Enter Revenue ($ USD):", "1.00"));
+      if (date && !isNaN(usd)) {
+        earningsData.unshift({ date, usd, views: 0, type: 'Manual' });
+        earningsData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
+        renderTableAndMetrics();
+      }
+    }
+  </script>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
