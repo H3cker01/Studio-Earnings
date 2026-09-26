@@ -42,6 +42,45 @@
       color: #d29922;
       border: 1px solid rgba(210, 153, 34, 0.3);
     }
+    .timeframe-btn {
+      background-color: rgba(33, 38, 45, 0.6);
+      border: 1px solid #30363d;
+      color: #8b949e;
+      transition: all 0.2s ease;
+    }
+    .timeframe-btn:hover {
+      background-color: #30363d;
+      color: #f0f6fc;
+    }
+    .timeframe-btn.active {
+      background-color: #238636;
+      border-color: #2ea043;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
   </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -55,15 +94,16 @@
           <h1 class="text-2xl font-bold text-white tracking-tight">StudioRevenue</h1>
           <span class="text-xs px-2.5 py-1 rounded-full font-mono font-semibold bg-red-950/60 text-red-400 border border-red-800/50">PRO</span>
         </div>
-        <p class="text-xs text-gray-400 mt-1">Live YouTube Analytics & PKR Currency Conversion Engine</p>
+        <p class="text-xs text-gray-400 mt-1">Live YouTube Analytics & Automatic PKR Currency Engine</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
-        <!-- PKR Exchange Rate Pill -->
-        <div class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
+        <!-- PKR Auto-Patched Exchange Rate Pill -->
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 flex items-center gap-2" title="Auto-patches every 10 minutes from live FX APIs">
+          <span class="pulse-dot"></span>
           <i class="fa-solid fa-coins text-yellow-500 text-sm"></i>
           <span class="text-xs text-gray-400">USD/PKR:</span>
-          <span id="exchangeRateText" class="text-sm font-bold text-emerald-400">Fetching...</span>
+          <span id="exchangeRateText" class="text-sm font-bold text-emerald-400">Auto-patching...</span>
         </div>
 
         <!-- Auth Action Buttons -->
@@ -103,14 +143,14 @@
       <div class="glass-card p-5">
         <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total Revenue ($ USD)</span>
         <div id="totalUsd" class="text-3xl font-extrabold text-blue-400 my-1">$0.00</div>
-        <span class="text-xs text-gray-500">Accumulated channel earnings</span>
+        <span class="text-xs text-gray-500" id="usdSubText">Accumulated channel earnings</span>
       </div>
 
       <!-- Total PKR -->
       <div class="glass-card p-5">
         <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total Revenue (PKR)</span>
         <div id="totalPkr" class="text-3xl font-extrabold text-emerald-400 my-1">₨ 0</div>
-        <span id="conversionRateSub" class="text-xs text-gray-500">1 USD = 276.96 PKR</span>
+        <span id="conversionRateSub" class="text-xs text-gray-500">Auto-patching live rate...</span>
       </div>
 
       <!-- Daily Average -->
@@ -128,9 +168,25 @@
       </div>
     </div>
 
-    <!-- Chart Analytics Section -->
+    <!-- Chart Analytics Section with Dynamic Timeframe Counter -->
     <div class="glass-card p-6">
-      <h3 class="text-lg font-semibold text-white mb-4">Revenue Analytics Trend</h3>
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div>
+          <h3 class="text-lg font-semibold text-white">Revenue Analytics Trend</h3>
+          <p class="text-xs text-gray-400">Comparative track of daily earnings in USD ($) and auto-converted PKR (₨)</p>
+        </div>
+        
+        <!-- Date Counter Filters -->
+        <div class="flex flex-wrap items-center gap-1.5 bg-gray-900/90 p-1.5 rounded-lg border border-gray-800">
+          <button onclick="setTimeframe(7)" id="tf-7" class="timeframe-btn text-xs px-3 py-1.5 rounded-md font-medium">7 Days</button>
+          <button onclick="setTimeframe(28)" id="tf-28" class="timeframe-btn text-xs px-3 py-1.5 rounded-md font-medium">28 Days</button>
+          <button onclick="setTimeframe(30)" id="tf-30" class="timeframe-btn active text-xs px-3 py-1.5 rounded-md font-medium">30 Days</button>
+          <button onclick="setTimeframe(60)" id="tf-60" class="timeframe-btn text-xs px-3 py-1.5 rounded-md font-medium">60 Days</button>
+          <button onclick="setTimeframe(90)" id="tf-90" class="timeframe-btn text-xs px-3 py-1.5 rounded-md font-medium">90 Days</button>
+          <button onclick="setTimeframe('all')" id="tf-all" class="timeframe-btn text-xs px-3 py-1.5 rounded-md font-medium">All Time</button>
+        </div>
+      </div>
+
       <div class="relative h-72 w-full">
         <canvas id="revenueChart"></canvas>
       </div>
@@ -197,33 +253,61 @@
   <script>
     let clientId = localStorage.getItem('yt_client_id') || '1080999553577-i32dhrp51f3d8fu7q6mqa2fo46audqme.apps.googleusercontent.com';
     let manualChannelId = localStorage.getItem('yt_channel_id') || '';
-    let usdToPkrRate = 276.96;
+    let usdToPkrRate = parseFloat(localStorage.getItem('yt_last_pkr_rate')) || 276.96;
     let tokenClient;
     let chartInstance = null;
+    let selectedTimeframe = 30; // Default filter: 30 days
     let earningsData = JSON.parse(localStorage.getItem('yt_earnings_log')) || [];
 
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('clientIdInput').value = clientId;
       document.getElementById('channelIdInput').value = manualChannelId;
-      fetchExchangeRate();
+      
       initChart();
       checkOAuthSession();
+      
+      // Auto-Patch FX rate immediately on boot & set 10-min interval poll
+      autoPatchExchangeRate();
+      setInterval(autoPatchExchangeRate, 10 * 60 * 1000);
+      
       renderTableAndMetrics();
     });
 
-    async function fetchExchangeRate() {
-      try {
-        const res = await fetch('https://open.er-api.com/v6/latest/USD');
-        const data = await res.json();
-        if (data?.rates?.PKR) {
-          usdToPkrRate = data.rates.PKR;
-          document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)}`;
-          document.getElementById('conversionRateSub').innerText = `1 USD = ${usdToPkrRate.toFixed(2)} PKR`;
-          renderTableAndMetrics();
+    // Auto-patching Live USD to PKR Engine
+    async function autoPatchExchangeRate() {
+      const apiEndpoints = [
+        'https://open.er-api.com/v6/latest/USD',
+        'https://api.exchangerate-api.com/v4/latest/USD',
+        'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'
+      ];
+
+      for (const endpoint of apiEndpoints) {
+        try {
+          const res = await fetch(endpoint);
+          if (!res.ok) continue;
+          const data = await res.json();
+          
+          let rate = null;
+          if (data?.rates?.PKR) rate = data.rates.PKR;
+          else if (data?.usd?.pkr) rate = data.usd.pkr;
+
+          if (rate && !isNaN(rate)) {
+            usdToPkrRate = parseFloat(rate);
+            localStorage.setItem('yt_last_pkr_rate', usdToPkrRate);
+            
+            document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)}`;
+            document.getElementById('conversionRateSub').innerText = `1 USD = ${usdToPkrRate.toFixed(2)} PKR`;
+            renderTableAndMetrics();
+            return; // Successfully patched
+          }
+        } catch (e) {
+          console.warn('FX Endpoint failed, trying fallback endpoint...', e);
         }
-      } catch (e) {
-        document.getElementById('exchangeRateText').innerText = `₨ 276.96`;
       }
+
+      // Fallback UI rendering if network fails completely
+      document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)}`;
+      document.getElementById('conversionRateSub').innerText = `1 USD = ${usdToPkrRate.toFixed(2)} PKR`;
     }
 
     function initOAuthClient() {
@@ -296,29 +380,49 @@
       alert('Settings saved!');
     }
 
+    // Dynamic Timeframe Selector Handler
+    function setTimeframe(days) {
+      selectedTimeframe = days;
+      document.querySelectorAll('.timeframe-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tf-${days}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      renderTableAndMetrics();
+    }
+
     async function syncYouTubeData() {
       const token = localStorage.getItem('yt_oauth_token');
       if (!token) return alert('Session expired. Please sign in.');
 
       try {
         let channelId = manualChannelId;
+        let publishedAt = null;
 
-        if (!channelId) {
-          const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const channelData = await channelRes.json();
-          if (channelData.items && channelData.items.length > 0) {
-            channelId = channelData.items[0].id;
-          }
+        // Step 1: Detect Channel ID & Creation Date if not cached
+        const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const channelData = await channelRes.json();
+        
+        if (channelData.items && channelData.items.length > 0) {
+          if (!channelId) channelId = channelData.items[0].id;
+          publishedAt = channelData.items[0].snippet?.publishedAt;
         }
 
         if (!channelId) {
           throw new Error('No channel found automatically. Open ⚙ Settings and enter your Channel ID manually.');
         }
 
+        // Step 2: Determine Start Date (Fetch up to 2000 days or back to creation date)
         const endDate = new Date().toISOString().split('T')[0];
-        const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        let startDate;
+
+        if (publishedAt) {
+          startDate = new Date(publishedAt).toISOString().split('T')[0];
+        } else {
+          // Fallback: 5 Years history
+          startDate = new Date(Date.now() - 1825 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        }
 
         const analyticsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue,views&dimensions=day&sort=day`;
 
@@ -339,9 +443,9 @@
           earningsData.sort((a, b) => new Date(b.date) - new Date(a.date));
           localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
           renderTableAndMetrics();
-          alert('Analytics synchronized successfully!');
+          alert('Full YouTube channel analytics synchronized!');
         } else {
-          alert('API connected, but no monetary data was returned for this period.');
+          alert('API connected, but no monetary data was returned.');
         }
       } catch (e) {
         alert(e.message);
@@ -356,6 +460,14 @@
       renderTableAndMetrics();
     }
 
+    // Get Filtered Subset of Data Based on Active Timeframe Counter
+    function getFilteredData() {
+      if (selectedTimeframe === 'all' || earningsData.length === 0) {
+        return earningsData;
+      }
+      return earningsData.slice(0, Number(selectedTimeframe));
+    }
+
     function renderTableAndMetrics() {
       const tbody = document.getElementById('earningsTableBody');
       tbody.innerHTML = '';
@@ -366,9 +478,8 @@
         return;
       }
 
-      let totalUsd = 0;
+      // 1. Always Render Full Table Log
       earningsData.forEach((entry, idx) => {
-        totalUsd += entry.usd;
         const pkrVal = (entry.usd * usdToPkrRate).toLocaleString('en-PK', { maximumFractionDigits: 2 });
         const isLive = entry.type === 'Live API';
 
@@ -385,9 +496,13 @@
         tbody.appendChild(tr);
       });
 
-      const avgUsd = totalUsd / earningsData.length;
-      updateMetrics(totalUsd, avgUsd, earningsData.length, earningsData[0]?.date || 'N/A');
-      updateChart();
+      // 2. Compute Filtered Metrics for Cards & Chart
+      const filtered = getFilteredData();
+      const filteredTotalUsd = filtered.reduce((acc, curr) => acc + curr.usd, 0);
+      const avgUsd = filtered.length > 0 ? filteredTotalUsd / filtered.length : 0;
+      
+      updateMetrics(filteredTotalUsd, avgUsd, filtered.length, filtered[0]?.date || 'N/A');
+      updateChart(filtered);
     }
 
     function updateMetrics(totalUsd, avgUsd, count, latestDate) {
@@ -397,6 +512,9 @@
       document.getElementById('dailyAvgPkr').innerText = `₨ ${(avgUsd * usdToPkrRate).toFixed(0)} / day`;
       document.getElementById('daysTrackedCount').innerText = count;
       document.getElementById('latestDateText').innerText = `Latest: ${latestDate}`;
+
+      const timeframeLabel = selectedTimeframe === 'all' ? 'All-time channel earnings' : `Last ${selectedTimeframe} days earnings`;
+      document.getElementById('usdSubText').innerText = timeframeLabel;
     }
 
     function initChart() {
@@ -408,9 +526,9 @@
       });
     }
 
-    function updateChart() {
+    function updateChart(dataset = earningsData) {
       if (!chartInstance) return;
-      const sortedAsc = [...earningsData].reverse();
+      const sortedAsc = [...dataset].reverse();
       chartInstance.data.labels = sortedAsc.map(e => e.date);
       chartInstance.data.datasets[0].data = sortedAsc.map(e => e.usd);
       chartInstance.update();
