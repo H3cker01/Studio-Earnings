@@ -5,185 +5,229 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StudioRevenue - Live YT Analytics & PKR Tracker</title>
   
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Google Identity Services Library -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
-    body { background-color: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; }
-    .metric-val { font-size: 1.8rem; font-weight: 700; }
-    .table-dark { background-color: #161b22; color: #c9d1d9; }
-    .table-dark th { border-color: #30363d; background-color: #21262d; }
-    .table-dark td { border-color: #30363d; }
-    .badge-live { background-color: #238636; color: #fff; }
-    .badge-sim { background-color: #d29922; color: #000; }
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .glass-card {
+      background: rgba(22, 27, 34, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid #30363d;
+      border-radius: 12px;
+    }
+    .btn-gradient {
+      background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+    }
+    .btn-gradient:hover {
+      background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+    }
+    .badge-live {
+      background-color: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+    .badge-sim {
+      background-color: rgba(210, 153, 34, 0.2);
+      color: #d29922;
+      border: 1px solid rgba(210, 153, 34, 0.3);
+    }
   </style>
 </head>
-<body class="p-3 p-md-4">
+<body class="p-4 md:p-8 min-h-screen">
 
-  <div class="container-fluid max-width-1200">
-    <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+  <div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Top Navigation Header -->
+    <header class="glass-card p-5 flex flex-col md:flex-row justify-between items-center gap-4">
       <div>
-        <h2 class="mb-0 text-white">StudioRevenue</h2>
-        <small class="text-secondary">Live YT Analytics & PKR Tracker</small>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold text-white tracking-tight">StudioRevenue</h1>
+          <span class="text-xs px-2.5 py-1 rounded-full font-mono font-semibold bg-red-950/60 text-red-400 border border-red-800/50">PRO</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">Live YouTube Analytics & PKR Currency Conversion Engine</p>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-dark border border-secondary p-2">
-          USD/PKR: <span id="exchangeRateText" class="text-success fw-bold">Fetching...</span>
-        </span>
-        <button id="authBtn" class="btn btn-danger btn-sm" onclick="handleAuthClick()">Sign in with Google</button>
-        <button id="logoutBtn" class="btn btn-outline-secondary btn-sm d-none" onclick="logoutUser()">Logout</button>
-        <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#configModal">⚙ OAuth Setup</button>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- PKR Exchange Rate Pill -->
+        <div class="bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
+          <i class="fa-solid fa-coins text-yellow-500 text-sm"></i>
+          <span class="text-xs text-gray-400">USD/PKR:</span>
+          <span id="exchangeRateText" class="text-sm font-bold text-emerald-400">Fetching...</span>
+        </div>
+
+        <!-- Auth Action Buttons -->
+        <button id="authBtn" onclick="handleAuthClick()" class="btn-gradient text-white font-medium text-sm px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-lg">
+          <i class="fa-brands fa-google"></i> Sign in with Google
+        </button>
+        
+        <button id="logoutBtn" onclick="logoutUser()" class="hidden bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium text-sm px-4 py-2 rounded-lg transition border border-gray-700">
+          <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+
+        <button onclick="toggleModal(true)" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium text-sm px-3 py-2 rounded-lg transition border border-gray-700" title="OAuth & API Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Session Status Bar -->
+    <div id="statusBanner" class="glass-card p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <span id="sessionStatusBadge" class="badge-sim text-xs px-3 py-1 rounded-full font-medium">Simulator Mode</span>
+        <span id="sessionStatusText" class="text-sm text-gray-300">Not connected to Google OAuth. Displaying local data.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="syncLiveBtn" onclick="syncYouTubeData()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3 py-2 rounded-lg transition">
+          <i class="fa-solid fa-rotate text-xs mr-1"></i> Sync Live YouTube Studio
+        </button>
+        <button id="simulatorBtn" onclick="runSimulatorSync()" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30 font-medium text-xs px-3 py-2 rounded-lg transition">
+          <i class="fa-solid fa-flask text-xs mr-1"></i> Simulator Sync
+        </button>
       </div>
     </div>
 
-    <!-- Banner Status -->
-    <div id="statusBanner" class="alert alert-dark border-secondary d-flex justify-content-between align-items-center">
-      <div>
-        <span id="sessionStatusBadge" class="badge badge-sim me-2">Simulator Mode</span>
-        <span id="sessionStatusText">Not connected to Google OAuth. Displaying local data.</span>
+    <!-- Analytics Summary Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total USD -->
+      <div class="glass-card p-5">
+        <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total Revenue ($ USD)</span>
+        <div id="totalUsd" class="text-3xl font-extrabold text-blue-400 my-1">$0.00</div>
+        <span class="text-xs text-gray-500">Accumulated channel earnings</span>
       </div>
-      <div>
-        <button id="syncLiveBtn" class="btn btn-sm btn-success d-none" onclick="syncYouTubeData()">Sync Live YouTube Studio</button>
-        <button id="simulatorBtn" class="btn btn-sm btn-warning" onclick="runSimulatorSync()">Simulator Sync</button>
+
+      <!-- Total PKR -->
+      <div class="glass-card p-5">
+        <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total Revenue (PKR)</span>
+        <div id="totalPkr" class="text-3xl font-extrabold text-emerald-400 my-1">₨ 0</div>
+        <span id="conversionRateSub" class="text-xs text-gray-500">1 USD = 276.96 PKR</span>
+      </div>
+
+      <!-- Daily Average -->
+      <div class="glass-card p-5">
+        <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Daily Average ($ USD)</span>
+        <div id="dailyAvgUsd" class="text-3xl font-extrabold text-cyan-400 my-1">$0.00</div>
+        <span id="dailyAvgPkr" class="text-xs text-gray-500">₨ 0 / day</span>
+      </div>
+
+      <!-- Days Tracked -->
+      <div class="glass-card p-5">
+        <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Days Tracked</span>
+        <div id="daysTrackedCount" class="text-3xl font-extrabold text-amber-400 my-1">0</div>
+        <span id="latestDateText" class="text-xs text-gray-500">Latest: N/A</span>
       </div>
     </div>
 
-    <!-- Summary Metrics Cards -->
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="card p-3">
-          <div class="text-secondary small">Total Revenue ($ USD)</div>
-          <div class="metric-val text-primary" id="totalUsd">$0.00</div>
-          <div class="small text-secondary">Accumulated earnings</div>
-        </div>
-      </div>
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="card p-3">
-          <div class="text-secondary small">Total Revenue (PKR)</div>
-          <div class="metric-val text-success" id="totalPkr">₨ 0</div>
-          <div class="small text-secondary" id="conversionRateSub">Converted live</div>
-        </div>
-      </div>
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="card p-3">
-          <div class="text-secondary small">Daily Average ($ USD)</div>
-          <div class="metric-val text-info" id="dailyAvgUsd">$0.00</div>
-          <div class="small text-secondary" id="dailyAvgPkr">₨ 0 / day</div>
-        </div>
-      </div>
-      <div class="col-12 col-sm-6 col-md-3">
-        <div class="card p-3">
-          <div class="text-secondary small">Days Tracked</div>
-          <div class="metric-val text-warning" id="daysTrackedCount">0</div>
-          <div class="small text-secondary" id="latestDateText">Latest: N/A</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chart Visualization -->
-    <div class="card p-3 mb-4">
-      <h5 class="text-white mb-3">Revenue Analytics Trend</h5>
-      <div style="height: 300px;">
+    <!-- Chart Analytics Section -->
+    <div class="glass-card p-6">
+      <h3 class="text-lg font-semibold text-white mb-4">Revenue Analytics Trend</h3>
+      <div class="relative h-72 w-full">
         <canvas id="revenueChart"></canvas>
       </div>
     </div>
 
-    <!-- Data Table Log -->
-    <div class="card p-3">
-      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h5 class="text-white mb-0">Daily Earnings Log</h5>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-primary" onclick="addManualEntry()">+ Add Entry</button>
-          <button class="btn btn-sm btn-outline-danger" onclick="clearSimulatedEntries()">Clear Estimated Rows</button>
+    <!-- Earnings Data Table Log -->
+    <div class="glass-card p-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <h3 class="text-lg font-semibold text-white">Daily Earnings Log</h3>
+        <div class="flex gap-2">
+          <button onclick="addManualEntry()" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-medium px-3 py-1.5 rounded-lg transition">
+            + Add Entry
+          </button>
+          <button onclick="clearSimulatedEntries()" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs font-medium px-3 py-1.5 rounded-lg transition">
+            Clear Estimated Rows
+          </button>
         </div>
       </div>
-      
-      <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle mb-0">
-          <thead>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-gray-900/80 text-gray-400 text-xs uppercase border-b border-gray-800">
             <tr>
-              <th>Date</th>
-              <th>Estimated Revenue ($ USD)</th>
-              <th>Converted Revenue (PKR)</th>
-              <th>Est. Views</th>
-              <th>Source / Status</th>
-              <th>Actions</th>
+              <th class="p-3">Date</th>
+              <th class="p-3">Estimated Revenue ($ USD)</th>
+              <th class="p-3">Converted Revenue (PKR)</th>
+              <th class="p-3">Est. Views</th>
+              <th class="p-3">Source / Status</th>
+              <th class="p-3">Actions</th>
             </tr>
           </thead>
-          <tbody id="earningsTableBody">
-            <tr><td colspan="6" class="text-center text-secondary py-4">No earnings data loaded yet.</td></tr>
+          <tbody id="earningsTableBody" class="divide-y divide-gray-800/60">
+            <tr><td colspan="6" class="text-center text-gray-500 py-6">No earnings data loaded yet.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+
   </div>
 
-  <!-- OAuth Configuration Modal -->
-  <div class="modal fade" id="configModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content bg-dark text-light border-secondary">
-        <div class="modal-header border-secondary">
-          <h5 class="modal-title">⚙ OAuth Setup</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <label class="form-label">Google OAuth Client ID:</label>
-          <input type="text" id="clientIdInput" class="form-control bg-black text-light border-secondary mb-2" 
-                 placeholder="1080999...apps.googleusercontent.com">
-          <small class="text-secondary">Enter your Google Cloud Console OAuth 2.0 Web Client ID here.</small>
-        </div>
-        <div class="modal-footer border-secondary">
-          <button type="button" class="btn btn-primary" onclick="saveClientId()">Save Configuration</button>
-        </div>
+  <!-- OAuth Setup Modal -->
+  <div id="configModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center p-4 z-50">
+    <div class="glass-card p-6 max-w-md w-full space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+        <h3 class="text-lg font-bold text-white">⚙ Settings & OAuth Setup</h3>
+        <button onclick="toggleModal(false)" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-300 mb-1">Google OAuth Client ID</label>
+        <input type="text" id="clientIdInput" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500" placeholder="1080999...apps.googleusercontent.com">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-300 mb-1">Manual Channel ID (Optional Fallback)</label>
+        <input type="text" id="channelIdInput" class="w-full bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500" placeholder="UCxxxxxxxxxxxxxxxxxxxx">
+        <p class="text-[10px] text-gray-500 mt-1">Only fill if automatic channel detection returns an empty list.</p>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="saveSettings()" class="btn-gradient text-white text-xs font-medium px-4 py-2 rounded-lg">Save Configuration</button>
       </div>
     </div>
   </div>
 
-  <!-- App Script Logic -->
+  <!-- Application Code Logic -->
   <script>
-    // Configuration & State
     let clientId = localStorage.getItem('yt_client_id') || '1080999553577-i32dhrp51f3d8fu7q6mqa2fo46audqme.apps.googleusercontent.com';
+    let manualChannelId = localStorage.getItem('yt_channel_id') || '';
     let usdToPkrRate = 276.96;
     let tokenClient;
     let chartInstance = null;
     let earningsData = JSON.parse(localStorage.getItem('yt_earnings_log')) || [];
 
-    // Initialize App
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('clientIdInput').value = clientId;
+      document.getElementById('channelIdInput').value = manualChannelId;
       fetchExchangeRate();
       initChart();
       checkOAuthSession();
       renderTableAndMetrics();
     });
 
-    // 1. Exchange Rate Fetcher
     async function fetchExchangeRate() {
       try {
         const res = await fetch('https://open.er-api.com/v6/latest/USD');
         const data = await res.json();
-        if (data && data.rates && data.rates.PKR) {
+        if (data?.rates?.PKR) {
           usdToPkrRate = data.rates.PKR;
           document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)}`;
           document.getElementById('conversionRateSub').innerText = `1 USD = ${usdToPkrRate.toFixed(2)} PKR`;
           renderTableAndMetrics();
         }
       } catch (e) {
-        console.warn('Exchange rate API failed. Using fallback: PKR 276.96');
-        document.getElementById('exchangeRateText').innerText = `₨ ${usdToPkrRate.toFixed(2)} (Fallback)`;
+        document.getElementById('exchangeRateText').innerText = `₨ 276.96`;
       }
     }
 
-    // 2. Google OAuth Integration (GIS)
     function initOAuthClient() {
-      if (!clientId) return alert('Please enter a Client ID in ⚙ OAuth Setup.');
-      
+      if (!clientId) return alert('Please enter a Client ID in settings.');
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
         scope: 'https://www.googleapis.com/auth/yt-analytics-monetary.readonly https://www.googleapis.com/auth/youtube.readonly',
@@ -192,7 +236,6 @@
             const expiryTime = Date.now() + (response.expires_in * 1000);
             localStorage.setItem('yt_oauth_token', response.access_token);
             localStorage.setItem('yt_oauth_expiry', expiryTime);
-            
             checkOAuthSession();
             syncYouTubeData();
           }
@@ -210,30 +253,26 @@
       const expiry = localStorage.getItem('yt_oauth_expiry');
 
       if (token && expiry && Date.now() < Number(expiry)) {
-        // Logged In: Hide Simulator completely
-        document.getElementById('authBtn').classList.add('d-none');
-        document.getElementById('logoutBtn').classList.remove('d-none');
-        document.getElementById('syncLiveBtn').classList.remove('d-none');
-        document.getElementById('simulatorBtn').classList.add('d-none');
-        document.getElementById('simulatorBtn').disabled = true;
+        document.getElementById('authBtn').classList.add('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        document.getElementById('syncLiveBtn').classList.remove('hidden');
+        document.getElementById('simulatorBtn').classList.add('hidden');
 
-        document.getElementById('sessionStatusBadge').className = 'badge badge-live me-2';
-        document.getElementById('sessionStatusBadge').innerText = 'Connected to Live YouTube Analytics API';
-        document.getElementById('sessionStatusText').innerText = 'Active OAuth session. Click button to sync daily revenue.';
+        document.getElementById('sessionStatusBadge').className = 'badge-live text-xs px-3 py-1 rounded-full font-medium';
+        document.getElementById('sessionStatusBadge').innerText = 'Connected to Live API';
+        document.getElementById('sessionStatusText').innerText = 'Active OAuth session connected.';
       } else {
-        // Logged Out: Enable Simulator
         localStorage.removeItem('yt_oauth_token');
         localStorage.removeItem('yt_oauth_expiry');
 
-        document.getElementById('authBtn').classList.remove('d-none');
-        document.getElementById('logoutBtn').classList.add('d-none');
-        document.getElementById('syncLiveBtn').classList.add('d-none');
-        document.getElementById('simulatorBtn').classList.remove('d-none');
-        document.getElementById('simulatorBtn').disabled = false;
+        document.getElementById('authBtn').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.add('hidden');
+        document.getElementById('syncLiveBtn').classList.add('hidden');
+        document.getElementById('simulatorBtn').classList.remove('hidden');
 
-        document.getElementById('sessionStatusBadge').className = 'badge badge-sim me-2';
+        document.getElementById('sessionStatusBadge').className = 'badge-sim text-xs px-3 py-1 rounded-full font-medium';
         document.getElementById('sessionStatusBadge').innerText = 'Simulator Mode';
-        document.getElementById('sessionStatusText').innerText = 'Not connected to Google OAuth. Displaying local data.';
+        document.getElementById('sessionStatusText').innerText = 'Not connected to Google OAuth.';
       }
     }
 
@@ -241,41 +280,46 @@
       localStorage.removeItem('yt_oauth_token');
       localStorage.removeItem('yt_oauth_expiry');
       checkOAuthSession();
-      alert('Logged out successfully.');
     }
 
-    function saveClientId() {
-      const inputVal = document.getElementById('clientIdInput').value.trim();
-      if (inputVal) {
-        clientId = inputVal;
-        localStorage.setItem('yt_client_id', clientId);
-        initOAuthClient();
-        bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
-        alert('OAuth Client ID saved successfully!');
-      }
+    function toggleModal(show) {
+      document.getElementById('configModal').classList.toggle('hidden', !show);
     }
 
-    // 3. YouTube Analytics API Integration
+    function saveSettings() {
+      clientId = document.getElementById('clientIdInput').value.trim();
+      manualChannelId = document.getElementById('channelIdInput').value.trim();
+      localStorage.setItem('yt_client_id', clientId);
+      localStorage.setItem('yt_channel_id', manualChannelId);
+      initOAuthClient();
+      toggleModal(false);
+      alert('Settings saved!');
+    }
+
     async function syncYouTubeData() {
       const token = localStorage.getItem('yt_oauth_token');
-      if (!token) return alert('No active session. Please sign in again.');
+      if (!token) return alert('Session expired. Please sign in.');
 
       try {
-        // Step A: Get Channel ID
-        const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const channelData = await channelRes.json();
-        
-        if (!channelData.items || channelData.items.length === 0) {
-          throw new Error('No YouTube Channel found for this account.');
-        }
-        const channelId = channelData.items[0].id;
+        let channelId = manualChannelId;
 
-        // Step B: Fetch Analytics Reports (Last 30 Days)
+        if (!channelId) {
+          const channelRes = await fetch('https://www.googleapis.com/youtube/v3/channels?part=id&mine=true', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const channelData = await channelRes.json();
+          if (channelData.items && channelData.items.length > 0) {
+            channelId = channelData.items[0].id;
+          }
+        }
+
+        if (!channelId) {
+          throw new Error('No channel found automatically. Open ⚙ Settings and enter your Channel ID manually.');
+        }
+
         const endDate = new Date().toISOString().split('T')[0];
         const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        
+
         const analyticsUrl = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&metrics=estimatedRevenue,views&dimensions=day&sort=day`;
 
         const analyticsRes = await fetch(analyticsUrl, {
@@ -284,96 +328,65 @@
         const analyticsData = await analyticsRes.json();
 
         if (analyticsData.rows) {
-          // Process and merge API rows into local state
           analyticsData.rows.forEach(row => {
             const [dateStr, revUsd, viewsCount] = row;
-            
-            // Check if entry already exists
             const existingIdx = earningsData.findIndex(e => e.date === dateStr);
-            const entryObj = {
-              date: dateStr,
-              usd: parseFloat(revUsd.toFixed(2)),
-              views: viewsCount,
-              type: 'Live API'
-            };
-
-            if (existingIdx >= 0) {
-              earningsData[existingIdx] = entryObj;
-            } else {
-              earningsData.push(entryObj);
-            }
+            const entryObj = { date: dateStr, usd: parseFloat(revUsd.toFixed(2)), views: viewsCount, type: 'Live API' };
+            if (existingIdx >= 0) earningsData[existingIdx] = entryObj;
+            else earningsData.push(entryObj);
           });
 
-          // Sort descending by date
           earningsData.sort((a, b) => new Date(b.date) - new Date(a.date));
           localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
-          
           renderTableAndMetrics();
-          alert('Live YouTube Analytics successfully synchronized!');
+          alert('Analytics synchronized successfully!');
         } else {
-          alert('Sync complete. No revenue data returned for the selected date range.');
+          alert('API connected, but no monetary data was returned for this period.');
         }
       } catch (e) {
-        console.error(e);
-        alert(`API Error: ${e.message}`);
+        alert(e.message);
       }
     }
 
-    // 4. Simulator Guard (Blocked when logged in)
     function runSimulatorSync() {
-      if (localStorage.getItem('yt_oauth_token')) {
-        alert("Simulator is disabled while logged in to Live YouTube Analytics.");
-        return;
-      }
-
-      // Generate 1 dummy entry for testing
+      if (localStorage.getItem('yt_oauth_token')) return;
       const todayStr = new Date().toISOString().split('T')[0];
-      const dummyEntry = {
-        date: todayStr,
-        usd: parseFloat((Math.random() * 5 + 1).toFixed(2)),
-        views: Math.floor(Math.random() * 1000 + 500),
-        type: 'Estimated'
-      };
-
-      earningsData.unshift(dummyEntry);
+      earningsData.unshift({ date: todayStr, usd: parseFloat((Math.random() * 3 + 1).toFixed(2)), views: Math.floor(Math.random() * 800 + 400), type: 'Estimated' });
       localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
       renderTableAndMetrics();
     }
 
-    // 5. Data Table & Metrics Rendering
     function renderTableAndMetrics() {
       const tbody = document.getElementById('earningsTableBody');
       tbody.innerHTML = '';
 
       if (earningsData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-secondary py-4">No earnings data loaded yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-6">No earnings data loaded yet.</td></tr>`;
         updateMetrics(0, 0, 0, 'N/A');
         return;
       }
 
       let totalUsd = 0;
-
       earningsData.forEach((entry, idx) => {
         totalUsd += entry.usd;
         const pkrVal = (entry.usd * usdToPkrRate).toLocaleString('en-PK', { maximumFractionDigits: 2 });
         const isLive = entry.type === 'Live API';
 
         const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-800/40 transition';
         tr.innerHTML = `
-          <td class="fw-bold text-white">${entry.date}</td>
-          <td class="text-primary">$${entry.usd.toFixed(2)}</td>
-          <td class="text-success">₨ ${pkrVal}</td>
-          <td>${entry.views ? entry.views.toLocaleString() : 'N/A'}</td>
-          <td><span class="badge ${isLive ? 'badge-live' : 'badge-sim'}">${entry.type || 'Manual'}</span></td>
-          <td><button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteEntry(${idx})">×</button></td>
+          <td class="p-3 font-semibold text-white">${entry.date}</td>
+          <td class="p-3 text-blue-400">$${entry.usd.toFixed(2)}</td>
+          <td class="p-3 text-emerald-400">₨ ${pkrVal}</td>
+          <td class="p-3 text-gray-300">${entry.views ? entry.views.toLocaleString() : 'N/A'}</td>
+          <td class="p-3"><span class="${isLive ? 'badge-live' : 'badge-sim'} text-[11px] px-2.5 py-0.5 rounded-full font-medium">${entry.type || 'Manual'}</span></td>
+          <td class="p-3"><button onclick="deleteEntry(${idx})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Delete</button></td>
         `;
         tbody.appendChild(tr);
       });
 
       const avgUsd = totalUsd / earningsData.length;
-      const latestDate = earningsData[0]?.date || 'N/A';
-      
-      updateMetrics(totalUsd, avgUsd, earningsData.length, latestDate);
+      updateMetrics(totalUsd, avgUsd, earningsData.length, earningsData[0]?.date || 'N/A');
       updateChart();
     }
 
@@ -386,31 +399,12 @@
       document.getElementById('latestDateText').innerText = `Latest: ${latestDate}`;
     }
 
-    // 6. Chart.js Visualization
     function initChart() {
       const ctx = document.getElementById('revenueChart').getContext('2d');
       chartInstance = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Revenue ($ USD)',
-            data: [],
-            borderColor: '#58a6ff',
-            backgroundColor: 'rgba(88, 166, 255, 0.1)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
-            y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
-          }
-        }
+        data: { labels: [], datasets: [{ label: 'Revenue ($ USD)', data: [], borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#6b7280' }, grid: { color: '#1f2937' } }, y: { ticks: { color: '#6b7280' }, grid: { color: '#1f2937' } } } }
       });
     }
 
@@ -422,7 +416,6 @@
       chartInstance.update();
     }
 
-    // 7. Data Helpers
     function deleteEntry(index) {
       earningsData.splice(index, 1);
       localStorage.setItem('yt_earnings_log', JSON.stringify(earningsData));
@@ -446,8 +439,5 @@
       }
     }
   </script>
-
-  <!-- Bootstrap 5 JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
